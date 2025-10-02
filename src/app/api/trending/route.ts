@@ -32,7 +32,7 @@ export async function GET() {
 
         const response = await fetch(
             `${TMDB_BASE_URL}/trending/movie/week?api_key=${TMDB_API_KEY}`,
-            { cache: 'no-store' }
+            { next: { revalidate: 3600 } }
         )
 
         if (!response.ok) {

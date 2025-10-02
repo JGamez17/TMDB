@@ -4,7 +4,7 @@ import { MovieCard } from "./movie-card"
 import { useEffect, useState } from "react"
 import { Heart } from "lucide-react"
 import { useFavorites } from "@/hooks/use-favorites"
-import { Movie } from "@/lib/types/movie"
+import type { Movie } from "@/lib/types/movies"
 import { Alert } from "@/components/ui/alert"
 
 export function FavoritesGrid() {
@@ -21,12 +21,13 @@ export function FavoritesGrid() {
             }
 
             try {
-                const moviePromises = favoriteIds.map((id) =>
-                    fetch(`/api/movie/${id}`).then((res) => {
-                        if (!res.ok) throw new Error(`Failed to fetch movie ${id}`)
+                const moviePromises = favoriteIds.map((id) => {
+                    const movieId = id.toString()
+                    return fetch(`/api/movies/${movieId}`).then((res) => {
+                        if (!res.ok) throw new Error(`Failed to fetch movie ${movieId}`)
                         return res.json()
                     })
-                )
+                })
 
                 const movies = await Promise.all(moviePromises)
                 setMovies(movies)
@@ -49,8 +50,7 @@ export function FavoritesGrid() {
         return (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
                 {Array.from({ length: 10 }).map((_, i) => (
-                    <div key={i} className="animate-pulse aspect-[2/3] bg-muted rounded-lg">
-                    </div>
+                    <div key={i} className="animate-pulse aspect-[2/3] bg-muted rounded-lg"></div>
                 ))}
             </div>
         )
@@ -84,3 +84,5 @@ export function FavoritesGrid() {
         </div>
     )
 }
+
+

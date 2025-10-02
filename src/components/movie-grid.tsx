@@ -29,8 +29,7 @@ async function getTrendingMovies(): Promise<MovieResponse> {
 
     try {
         const response = await fetch(apiUrl, {
-            next: { revalidate: 3600 }, // Cache for 1 hour
-            cache: 'no-store'
+            next: { revalidate: 3600 } // Cache for 1 hour
         })
 
         if (!response.ok) {

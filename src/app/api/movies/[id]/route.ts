@@ -20,7 +20,10 @@ interface MovieDetails {
     tagline: string | null
 }
 
-export async function GET(_request: Request, { params }: { params: { id: string } }) {
+export async function GET(
+    _request: Request,
+    context: { params: { id: string } }
+) {
     try {
         if (!TMDB_API_KEY) {
             return NextResponse.json(
@@ -29,19 +32,28 @@ export async function GET(_request: Request, { params }: { params: { id: string 
             )
         }
 
-        // The id is a string coming from the URL parameter
-        const movieId = params.id
-        if (!movieId || movieId === '[object Object]') {
+        // Extract and validate the movie ID
+        const movieId = await context.params.id
+        if (!movieId || typeof movieId !== 'string') {
             return NextResponse.json(
-                { error: "Invalid movie ID" },
+                { error: "Invalid movie ID type" },
                 { status: 400 }
             )
         }
 
-        console.log("[v0] Fetching movie details for ID:", movieId)
+        // Ensure the ID is numeric
+        const numericId = parseInt(movieId, 10)
+        if (isNaN(numericId)) {
+            return NextResponse.json(
+                { error: "Movie ID must be a number" },
+                { status: 400 }
+            )
+        }
+
+        console.log("[v0] Fetching movie details for ID:", numericId)
 
         const response = await fetch(
-            `${TMDB_BASE_URL}/movie/${movieId}?api_key=${TMDB_API_KEY}`,
+            `${TMDB_BASE_URL}/movie/${numericId}?api_key=${TMDB_API_KEY}`,
             { cache: 'no-store' }
         )
 
