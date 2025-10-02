@@ -2,29 +2,41 @@ import { Badge } from "@/components/ui/badge"
 import { Card } from "@/components/ui/card"
 import { Star, Calendar, Clock, DollarSign } from "lucide-react"
 import { FavoriteButton } from "./favorite-button"
+import Image from "next/image"
 
-async function getMovieDetails(movieId: string) {
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL
-    const apiUrl = backendUrl ? `${backendUrl}/api/movies/${movieId}` : `/api/movies/${movieId}` // Use Next.js API route in v0 preview
-
-    console.log("[v0] Fetching movie details from:", apiUrl)
-
-    const response = await fetch(apiUrl, {
-        next: { revalidate: 3600 },
-    })
-
-    if (!response.ok) {
-        console.error("[v0] Failed to fetch movie details:", response.status)
-        throw new Error("Failed to fetch movie details")
-    }
-
-    const data = await response.json()
-    console.log("[v0] Successfully fetched movie details for:", data.title)
-    return data
+interface Genre {
+    id: number
+    name: string
 }
 
-export async function MovieDetails({ movieId }: { movieId: string }) {
-    const movie = await getMovieDetails(movieId)
+interface ProductionCompany {
+    id: number
+    name: string
+    logo_path: string | null
+    origin_country: string
+}
+
+interface MovieDetailsProps {
+    movie: {
+        id: number
+        title: string
+        overview: string | null
+        poster_path: string | null
+        backdrop_path: string | null
+        release_date: string | null
+        vote_average: number
+        vote_count: number
+        runtime: number | null
+        genres: Genre[]
+        status: string
+        tagline: string | null
+        budget?: number
+        revenue?: number
+        production_companies?: ProductionCompany[]
+    }
+}
+
+export function MovieDetails({ movie }: MovieDetailsProps) {
 
     const posterUrl = movie.poster_path
         ? `https://image.tmdb.org/t/p/w500${movie.poster_path}`
@@ -37,19 +49,31 @@ export async function MovieDetails({ movieId }: { movieId: string }) {
             {/* Backdrop with gradient overlay */}
             {backdropUrl && (
                 <div className="absolute inset-0 -z-10 overflow-hidden">
-                    <img
-                        src={backdropUrl || "/placeholder.svg"}
-                        alt=""
-                        className="w-full h-[500px] object-cover opacity-20 blur-sm"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-b from-background via-background/80 to-background" />
+                    <div className="relative w-full h-[500px]">
+                        <Image
+                            src={backdropUrl || "/placeholder.svg"}
+                            alt=""
+                            fill
+                            className="object-cover opacity-20 blur-sm"
+                            priority
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-b from-background via-background/80 to-background" />
+                    </div>
                 </div>
             )}
 
             <div className="grid md:grid-cols-[300px_1fr] gap-8 relative">
                 {/* Poster */}
                 <Card className="overflow-hidden border-0 shadow-2xl">
-                    <img src={posterUrl || "/placeholder.svg"} alt={movie.title} className="w-full h-auto object-cover" />
+                    <div className="relative aspect-[2/3]">
+                        <Image
+                            src={posterUrl || "/placeholder.svg"}
+                            alt={movie.title}
+                            fill
+                            className="object-cover"
+                            priority
+                        />
+                    </div>
                 </Card>
 
                 {/* Details */}
@@ -70,10 +94,12 @@ export async function MovieDetails({ movieId }: { movieId: string }) {
                             <span className="text-muted-foreground">({movie.vote_count.toLocaleString()} votes)</span>
                         </div>
 
-                        <div className="flex items-center gap-1.5 text-muted-foreground">
-                            <Calendar className="w-4 h-4" />
-                            <span>{new Date(movie.release_date).getFullYear()}</span>
-                        </div>
+                        {movie.release_date && (
+                            <div className="flex items-center gap-1.5 text-muted-foreground">
+                                <Calendar className="w-4 h-4" />
+                                <span>{new Date(movie.release_date).getFullYear()}</span>
+                            </div>
+                        )}
 
                         {movie.runtime && (
                             <div className="flex items-center gap-1.5 text-muted-foreground">
@@ -88,7 +114,7 @@ export async function MovieDetails({ movieId }: { movieId: string }) {
                     {/* Genres */}
                     {movie.genres && movie.genres.length > 0 && (
                         <div className="flex flex-wrap gap-2">
-                            {movie.genres.map((genre: any) => (
+                            {movie.genres.map((genre: Genre) => (
                                 <Badge key={genre.id} variant="secondary">
                                     {genre.name}
                                 </Badge>
@@ -104,7 +130,7 @@ export async function MovieDetails({ movieId }: { movieId: string }) {
 
                     {/* Additional Info */}
                     <div className="grid sm:grid-cols-2 gap-4 pt-4">
-                        {movie.budget > 0 && (
+                        {movie.budget && movie.budget > 0 && (
                             <Card className="p-4 bg-card/50">
                                 <div className="flex items-center gap-2 text-muted-foreground mb-1">
                                     <DollarSign className="w-4 h-4" />
@@ -114,7 +140,7 @@ export async function MovieDetails({ movieId }: { movieId: string }) {
                             </Card>
                         )}
 
-                        {movie.revenue > 0 && (
+                        {movie.revenue && movie.revenue > 0 && (
                             <Card className="p-4 bg-card/50">
                                 <div className="flex items-center gap-2 text-muted-foreground mb-1">
                                     <DollarSign className="w-4 h-4" />
@@ -130,7 +156,7 @@ export async function MovieDetails({ movieId }: { movieId: string }) {
                         <div>
                             <h3 className="text-lg font-semibold mb-3 text-foreground">Production Companies</h3>
                             <div className="flex flex-wrap gap-3">
-                                {movie.production_companies.slice(0, 4).map((company: any) => (
+                                {movie.production_companies.slice(0, 4).map((company: ProductionCompany) => (
                                     <Badge key={company.id} variant="outline" className="text-xs">
                                         {company.name}
                                     </Badge>

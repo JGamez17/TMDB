@@ -29,7 +29,15 @@ export async function GET(_request: Request, { params }: { params: { id: string 
             )
         }
 
+        // The id is a string coming from the URL parameter
         const movieId = params.id
+        if (!movieId || movieId === '[object Object]') {
+            return NextResponse.json(
+                { error: "Invalid movie ID" },
+                { status: 400 }
+            )
+        }
+
         console.log("[v0] Fetching movie details for ID:", movieId)
 
         const response = await fetch(

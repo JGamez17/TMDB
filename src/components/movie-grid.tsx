@@ -20,27 +20,29 @@ interface MovieResponse {
 }
 
 async function getTrendingMovies(): Promise<MovieResponse> {
-    // In Next.js App Router server components, we can use absolute URLs
-    const apiUrl = 'http://localhost:3000/api/trending'
+    // In server components, we need to use absolute URLs
+    const protocol = process.env.NODE_ENV === 'development' ? 'http' : 'https'
+    const host = process.env.VERCEL_URL || 'localhost:3000'
+    const apiUrl = `${protocol}://${host}/api/trending`
 
     console.log("[v0] Fetching trending movies from:", apiUrl)
 
     try {
         const response = await fetch(apiUrl, {
+            next: { revalidate: 3600 }, // Cache for 1 hour
             cache: 'no-store'
         })
 
         if (!response.ok) {
-            let bodyText = ""
+            let errorData = { error: "Failed to fetch trending movies" }
             try {
-                bodyText = await response.text()
+                errorData = await response.json()
             } catch { }
-            console.error("[v0] Failed to fetch trending movies:", response.status, response.statusText, bodyText)
-            throw new Error(`Failed to fetch: ${response.status}`)
+            console.error("[v0] Failed to fetch trending movies:", response.status, response.statusText, errorData)
+            throw new Error(errorData.error || `Failed to fetch: ${response.status}`)
         }
 
         const data = await response.json()
-        console.log("[v0] API response data:", JSON.stringify(data).substring(0, 200))
         console.log("[v0] Successfully fetched trending movies, count:", data.results?.length)
 
         if (!data || typeof data !== "object") {
