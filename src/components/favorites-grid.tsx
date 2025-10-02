@@ -4,11 +4,13 @@ import { MovieCard } from "./movie-card"
 import { useEffect, useState } from "react"
 import { Heart } from "lucide-react"
 import { useFavorites } from "@/hooks/use-favorites"
+import { useMovieCache } from "@/hooks/use-movie-cache"
 import type { Movie } from "@/lib/types/movies"
-import { Alert } from "@/components/ui/alert"
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert"
 
 export function FavoritesGrid() {
     const { favorites: favoriteIds, isLoading: isFavoritesLoading } = useFavorites()
+    const { fetchMovies } = useMovieCache()
     const [movies, setMovies] = useState<Movie[]>([])
     const [isLoading, setIsLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
@@ -17,20 +19,27 @@ export function FavoritesGrid() {
         async function loadFavorites() {
             if (favoriteIds.length === 0) {
                 setIsLoading(false)
+                setMovies([])
                 return
             }
 
             try {
-                const moviePromises = favoriteIds.map((id) => {
-                    const movieId = id.toString()
-                    return fetch(`/api/movies/${movieId}`).then((res) => {
-                        if (!res.ok) throw new Error(`Failed to fetch movie ${movieId}`)
-                        return res.json()
-                    })
-                })
+                setIsLoading(true)
+                // Ensure we have valid numeric IDs
+                const validIds = favoriteIds.filter(id =>
+                    typeof id === 'number' && !isNaN(id) && id > 0
+                )
 
-                const movies = await Promise.all(moviePromises)
-                setMovies(movies)
+                if (validIds.length === 0) {
+                    console.warn("[v0] No valid favorite IDs found:", favoriteIds)
+                    setMovies([])
+                    return
+                }
+
+                console.log("[v0] Loading favorites with IDs:", validIds)
+                const fetchedMovies = await fetchMovies(validIds)
+                console.log("[v0] Successfully loaded", fetchedMovies.length, "favorite movies")
+                setMovies(fetchedMovies)
                 setError(null)
             } catch (error) {
                 console.error("Failed to load favorites:", error)
@@ -41,9 +50,9 @@ export function FavoritesGrid() {
         }
 
         if (!isFavoritesLoading) {
-            setIsLoading(true)
             loadFavorites()
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [favoriteIds, isFavoritesLoading])
 
     if (isLoading || isFavoritesLoading) {
@@ -59,7 +68,8 @@ export function FavoritesGrid() {
     if (error) {
         return (
             <Alert variant="destructive" className="mb-6">
-                <p>{error}</p>
+                <AlertTitle>Error</AlertTitle>
+                <AlertDescription>{error}</AlertDescription>
             </Alert>
         )
     }
@@ -84,5 +94,3 @@ export function FavoritesGrid() {
         </div>
     )
 }
-
-
